@@ -70,16 +70,19 @@ ANSWERS_MAP = {
 
 def migrate():
     print("=====================================================")
-    print("  Supabase Database Migrator for Antigravity Reviewer ")
+    print("  Supabase Database Migrator for Microprocessor Finals Reviewer ")
     print("=====================================================")
     
-    url_input = input("Enter your Supabase Project URL [default: https://your-project.supabase.co]: ").strip()
-    url = url_input if url_input else "https://your-project.supabase.co"
+    url_input = input("Enter your Supabase Project URL [default: https://hohtzciihunbdlbhyiot.supabase.co]: ").strip()
+    url = url_input if url_input else "https://hohtzciihunbdlbhyiot.supabase.co"
     if not url.startswith("http"):
         url = "https://" + url
         
-    key_input = input("Enter your Supabase API Key [default: YOUR_SUPABASE_ANON_KEY]: ").strip()
-    key = key_input if key_input else "YOUR_SUPABASE_ANON_KEY"
+    key_input = input("Enter your Supabase Service Role Key: ").strip()
+    key = key_input
+    if not key:
+        print("Error: Service Role Key is required.")
+        return
 
     csv_path = "microprocessor_midterm.csv"
     questions = []
