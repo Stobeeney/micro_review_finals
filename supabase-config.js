@@ -1,6 +1,6 @@
 // Supabase Configuration
-// Configured with the correct Supabase API URL and API key
+// Configured with the correct public publishable key
 export const SUPABASE_CONFIG = {
-    supabaseUrl: 'https://your-project.supabase.co',
-    supabaseKey: 'YOUR_SUPABASE_ANON_KEY'
+    supabaseUrl: 'https://hohtzciihunbdlbhyiot.supabase.co',
+    supabaseKey: 'sb_publishable_fWZ2Bsi4TSzKTDYfu7VDFw_RlXNcUNo'
 };
