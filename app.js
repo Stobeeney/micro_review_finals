@@ -974,20 +974,24 @@ function updateSupabaseUI(connected, text = "") {
     const statusTextEl = document.getElementById('supabase-status-text');
     const dbIndicatorEl = document.getElementById('db-indicator');
 
-    if (!statusEl || !statusTextEl || !dbIndicatorEl) return;
+    if (!statusEl || !statusTextEl) return;
 
     if (connected) {
         statusEl.className = 'supabase-status online';
         statusTextEl.textContent = text || "Connected";
         
-        dbIndicatorEl.className = 'db-status-banner db-online';
-        dbIndicatorEl.textContent = `Connected (${text || "Online Mode"})`;
+        if (dbIndicatorEl) {
+            dbIndicatorEl.className = 'db-status-banner db-online';
+            dbIndicatorEl.textContent = `Connected (${text || "Online Mode"})`;
+        }
     } else {
         statusEl.className = 'supabase-status offline';
         statusTextEl.textContent = text || "Offline Mode";
         
-        dbIndicatorEl.className = 'db-status-banner db-offline';
-        dbIndicatorEl.textContent = text ? `Error: ${text}` : "Disconnected (Offline Mode)";
+        if (dbIndicatorEl) {
+            dbIndicatorEl.className = 'db-status-banner db-offline';
+            dbIndicatorEl.textContent = text ? `Error: ${text}` : "Disconnected (Offline Mode)";
+        }
     }
 }
 

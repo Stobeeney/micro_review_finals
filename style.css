@@ -1622,3 +1622,71 @@ body.light-theme .db-step-bullet {
 body.light-theme .code-lbl {
     background-color: rgba(0, 0, 0, 0.05);
 }
+
+/* --- Greeting Card Styles --- */
+.greeting-card {
+    padding: 24px;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(168, 85, 247, 0.06) 100%);
+    border-color: rgba(99, 102, 241, 0.15);
+    overflow: hidden;
+    position: relative;
+    text-align: center;
+}
+
+body.light-theme .greeting-card {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.03) 0%, rgba(168, 85, 247, 0.02) 100%);
+    border-color: rgba(99, 102, 241, 0.1);
+}
+
+.greeting-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.trophy-badge {
+    width: 46px;
+    height: 46px;
+    border-radius: var(--radius-full);
+    background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+    animation: bounceTrophy 3s ease-in-out infinite;
+}
+
+@keyframes bounceTrophy {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+.trophy-badge svg {
+    width: 22px;
+    height: 22px;
+}
+
+.greeting-title {
+    font-size: 1.3rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    background: linear-gradient(to right, #ffffff, #d8b4fe);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+body.light-theme .greeting-title {
+    background: linear-gradient(to right, var(--accent-primary), var(--accent-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.greeting-desc {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.55;
+    max-width: 240px;
+    margin: 0 auto;
+}
