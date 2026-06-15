@@ -67,11 +67,12 @@ const DEFAULT_ANSWERS = {
 
 // --- Application State ---
 let appState = {
+    currentTopic: 'micro',   // 'micro' or 'ccna2'
     fileName: '',
-    questions: [],          // Parsed questions array: { question, options: [], answerIdx, explanation }
+    questions: [],          // Parsed questions array: { question, options: [], correctAnswers: [], answerIdx, isMultiSelect, explanation }
     currentQuizIdx: 0,
     currentFlashIdx: 0,
-    userAnswers: [],        // Tracks user choices in current quiz session: { selectedIdx, correct }
+    userAnswers: [],        // Tracks user choices: { selectedIndices: [], isCorrect, submitted }
     bookmarks: new Set(),   // Set of bookmarked question indices
     stats: {
         attempts: 0,
@@ -89,7 +90,6 @@ let appState = {
 
 // --- DOM References ---
 const themeToggle = document.getElementById('theme-toggle');
-const loadDefaultBtn = document.getElementById('load-default-btn');
 const fileInput = document.getElementById('file-input');
 const dropZone = document.getElementById('drop-zone');
 const fileDetails = document.getElementById('file-details');
@@ -146,10 +146,14 @@ const toastContainer = document.getElementById('toast-container');
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
-    loadSavedData();
+    // Determine current topic (default: 'micro')
+    appState.currentTopic = localStorage.getItem('antigravity_reviewer_last_topic') || 'micro';
+    
     setupEventListeners();
     setupThemeUI();
-    checkSupabaseConnection();
+    
+    // Select the topic
+    selectTopic(appState.currentTopic);
 });
 
 // --- Theme Setup ---
@@ -231,8 +235,14 @@ function setupEventListeners() {
     // Quiz Controls
     quizPrevBtn.addEventListener('click', navigateQuizPrev);
     quizNextBtn.addEventListener('click', navigateQuizNext);
-    quizShowAnsBtn.addEventListener('click', revealQuizAnswer);
+    quizShowAnsBtn.addEventListener('click', handleQuizRevealOrSubmit);
     quizBookmarkBtn.addEventListener('click', toggleQuizBookmark);
+
+    // Topic Selector Buttons
+    const topicMicroBtn = document.getElementById('topic-micro-btn');
+    const topicCcnaBtn = document.getElementById('topic-ccna2-btn');
+    if (topicMicroBtn) topicMicroBtn.addEventListener('click', () => selectTopic('micro'));
+    if (topicCcnaBtn) topicCcnaBtn.addEventListener('click', () => selectTopic('ccna2'));
 
     // Flashcard interaction
     flashcard.addEventListener('click', () => {
@@ -327,11 +337,12 @@ function parseCSV(text) {
 }
 
 // --- File Handling Logic ---
-async function loadDefaultCSV() {
+async function loadMicroprocessorCSV() {
     try {
-        if (loadDefaultBtn) {
-            loadDefaultBtn.disabled = true;
-            loadDefaultBtn.textContent = "Loading Midterm Exam...";
+        const microBtn = document.getElementById('topic-micro-btn');
+        if (microBtn) {
+            microBtn.disabled = true;
+            microBtn.querySelector('span').textContent = "Loading Midterm...";
         }
         
         const response = await fetch('microprocessor_midterm.csv');
@@ -340,14 +351,42 @@ async function loadDefaultCSV() {
         }
         const text = await response.text();
         processCSVText("microprocessor_midterm.csv", text);
-        showToast("Microprocessor Midterm Exam loaded successfully!", "success");
+        showToast("Microprocessor Finals loaded successfully!", "success");
     } catch (err) {
         console.error(err);
         showToast("Could not find the local CSV file.", "error");
     } finally {
-        if (loadDefaultBtn) {
-            loadDefaultBtn.disabled = false;
-            loadDefaultBtn.textContent = "Load Microprocessor Midterm";
+        const microBtn = document.getElementById('topic-micro-btn');
+        if (microBtn) {
+            microBtn.disabled = false;
+            microBtn.querySelector('span').textContent = "Microprocessor Finals";
+        }
+    }
+}
+
+async function loadCCNA2CSV() {
+    try {
+        const ccnaBtn = document.getElementById('topic-ccna2-btn');
+        if (ccnaBtn) {
+            ccnaBtn.disabled = true;
+            ccnaBtn.querySelector('span').textContent = "Loading CCNA2...";
+        }
+        
+        const response = await fetch('CCNA2_SRWE_Reviewer.csv');
+        if (!response.ok) {
+            throw new Error(`Failed to fetch CCNA2 CSV. HTTP ${response.status}`);
+        }
+        const text = await response.text();
+        processCSVText("CCNA2_SRWE_Reviewer.csv", text);
+        showToast("CCNA2 SRWE Reviewer loaded successfully!", "success");
+    } catch (err) {
+        console.error(err);
+        showToast("Could not find the CCNA2 CSV file.", "error");
+    } finally {
+        const ccnaBtn = document.getElementById('topic-ccna2-btn');
+        if (ccnaBtn) {
+            ccnaBtn.disabled = false;
+            ccnaBtn.querySelector('span').textContent = "CCNA2 SRWE Reviewer";
         }
     }
 }
@@ -398,38 +437,57 @@ function processCSVText(fileName, csvText) {
         if (row.length < 5 || !row[qIndex]) continue; // Skip incomplete lines
 
         const questionText = row[qIndex].trim();
-        const options = [
-            row[aIndex] ? row[aIndex].trim() : '',
-            row[bIndex] ? row[bIndex].trim() : '',
-            row[cIndex] ? row[cIndex].trim() : '',
-            row[dIndex] ? row[dIndex].trim() : ''
-        ];
+        
+        // Generic option extraction
+        let options = [];
+        let rawAnswer = '';
+        
+        if (answerColIndex !== -1 && row.length > answerColIndex) {
+            // Options are all columns between index 1 and the last column (which is the answer)
+            for (let colIdx = 1; colIdx < row.length - 1; colIdx++) {
+                options.push(row[colIdx] ? row[colIdx].trim() : '');
+            }
+            rawAnswer = row[row.length - 1] ? row[row.length - 1].trim() : '';
+        } else {
+            // Microprocessor local file has no answer column, options are up to the end
+            for (let colIdx = 1; colIdx < row.length; colIdx++) {
+                options.push(row[colIdx] ? row[colIdx].trim() : '');
+            }
+        }
 
-        // Determine correct answer
-        let correctIdx = -1;
+        // Determine correct answer(s)
+        let correctAnswers = [];
         let explanation = '';
 
         if (isDefaultFile && DEFAULT_ANSWERS[i - 1] !== undefined) {
-            correctIdx = DEFAULT_ANSWERS[i - 1].correct;
+            correctAnswers = [DEFAULT_ANSWERS[i - 1].correct];
             explanation = DEFAULT_ANSWERS[i - 1].explanation;
-        } else if (answerColIndex !== -1 && row[answerColIndex]) {
-            const rawAns = row[answerColIndex].trim().toUpperCase();
-            if (rawAns === 'A' || rawAns === '0') correctIdx = 0;
-            else if (rawAns === 'B' || rawAns === '1') correctIdx = 1;
-            else if (rawAns === 'C' || rawAns === '2') correctIdx = 2;
-            else if (rawAns === 'D' || rawAns === '3') correctIdx = 3;
-            else {
-                // Try option matching
-                const matchedIdx = options.findIndex(opt => opt.toLowerCase() === rawAns.toLowerCase());
-                if (matchedIdx !== -1) correctIdx = matchedIdx;
+        } else if (rawAnswer) {
+            // Find letters A to H as isolated words/letters
+            const matches = rawAnswer.match(/\b[A-H]\b/g);
+            if (matches) {
+                const uniqueLetters = [...new Set(matches)];
+                correctAnswers = uniqueLetters.map(letter => letter.charCodeAt(0) - 65); // 'A' -> 0
+            } else {
+                // Digits fallback
+                const digits = rawAnswer.match(/[0-7]/g);
+                if (digits) {
+                    correctAnswers = [...new Set(digits.map(d => parseInt(d)))];
+                }
             }
         }
+
+        const isMultiSelect = correctAnswers.length > 1;
 
         processedQuestions.push({
             question: questionText,
             options: options,
-            answerIdx: correctIdx, // -1 means no answer key provided
-            explanation: explanation || (correctIdx !== -1 ? `Correct option: ${['A', 'B', 'C', 'D'][correctIdx]}.` : "No explanation available.")
+            correctAnswers: correctAnswers,
+            answerIdx: correctAnswers.length > 0 ? correctAnswers[0] : -1, // compatibility
+            isMultiSelect: isMultiSelect,
+            explanation: explanation || (correctAnswers.length > 0 
+                ? `Correct option(s): ${correctAnswers.map(idx => String.fromCharCode(65 + idx)).join(', ')}.` 
+                : "No explanation available.")
         });
     }
 
@@ -514,8 +572,8 @@ function renderQuizQuestion() {
     quizProgressBar.style.width = `${progressPct}%`;
 
     // Counters
-    const correctCount = appState.userAnswers.filter(ans => ans && ans.isCorrect).length;
-    const incorrectCount = appState.userAnswers.filter(ans => ans && !ans.isCorrect).length;
+    const correctCount = appState.userAnswers.filter(ans => ans && ans.submitted && ans.isCorrect).length;
+    const incorrectCount = appState.userAnswers.filter(ans => ans && ans.submitted && !ans.isCorrect).length;
     quizCorrectCount.textContent = correctCount;
     quizIncorrectCount.textContent = incorrectCount;
 
@@ -538,32 +596,66 @@ function renderQuizQuestion() {
 
         const btn = document.createElement('button');
         btn.className = 'option-btn';
+        
+        const optLetter = String.fromCharCode(65 + idx);
         btn.innerHTML = `
-            <span class="option-badge">${['A', 'B', 'C', 'D'][idx]}</span>
+            <span class="option-badge">${optLetter}</span>
             <span>${escapeHTML(opt)}</span>
         `;
 
-        if (userAnswer !== null) {
+        if (userAnswer !== null && userAnswer.submitted) {
             btn.classList.add('disabled');
-            // If already answered, colorize appropriately
-            if (idx === q.answerIdx) {
-                btn.classList.add('selected-correct');
-            } else if (idx === userAnswer.selectedIdx) {
+            const isCorrect = q.correctAnswers.includes(idx);
+            const isSelected = userAnswer.selectedIndices && userAnswer.selectedIndices.includes(idx);
+            
+            if (isCorrect) {
+                if (isSelected || !q.isMultiSelect) {
+                    btn.classList.add('selected-correct');
+                } else {
+                    btn.classList.add('should-have-selected');
+                }
+            } else if (isSelected) {
                 btn.classList.add('selected-incorrect');
             }
         } else {
-            btn.addEventListener('click', () => handleQuizOptionSelect(idx));
+            // Not yet submitted
+            const isSelected = userAnswer !== null && userAnswer.selectedIndices && userAnswer.selectedIndices.includes(idx);
+            if (isSelected) {
+                btn.classList.add('active-selected');
+            }
+
+            btn.addEventListener('click', () => {
+                if (q.isMultiSelect) {
+                    toggleMultiSelectOption(idx);
+                } else {
+                    submitSingleSelectOption(idx);
+                }
+            });
         }
 
         quizOptionsContainer.appendChild(btn);
     });
 
     // Explanation panel
-    if (userAnswer !== null && q.answerIdx !== -1) {
+    if (userAnswer !== null && userAnswer.submitted && q.correctAnswers.length > 0) {
         explanationText.textContent = q.explanation;
         explanationPanel.classList.remove('hidden');
     } else {
         explanationPanel.classList.add('hidden');
+    }
+
+    // Reveal/Submit Button
+    if (userAnswer !== null && userAnswer.submitted) {
+        quizShowAnsBtn.style.display = 'none';
+    } else {
+        quizShowAnsBtn.style.display = 'block';
+        if (q.isMultiSelect && userAnswer !== null && userAnswer.selectedIndices && userAnswer.selectedIndices.length > 0) {
+            quizShowAnsBtn.textContent = "Submit Answer";
+            quizShowAnsBtn.className = "btn btn-primary";
+        } else {
+            quizShowAnsBtn.textContent = "Reveal Answer";
+            quizShowAnsBtn.className = "btn btn-secondary";
+        }
     }
 
     // Toggle button disable states
@@ -582,19 +674,20 @@ function renderQuizQuestion() {
     }
 }
 
-function handleQuizOptionSelect(selectedIdx) {
+function submitSingleSelectOption(idx) {
     if (appState.questions.length === 0) return;
     const q = appState.questions[appState.currentQuizIdx];
-    const isCorrect = q.answerIdx === -1 ? true : selectedIdx === q.answerIdx;
+    const isCorrect = q.correctAnswers.length === 0 ? true : q.correctAnswers.includes(idx);
 
     // Record answer
     appState.userAnswers[appState.currentQuizIdx] = {
-        selectedIdx: selectedIdx,
-        isCorrect: isCorrect
+        selectedIndices: [idx],
+        isCorrect: isCorrect,
+        submitted: true
     };
 
-    // Increment overall statistics
-    if (q.answerIdx !== -1) {
+    // Increment statistics
+    if (q.correctAnswers.length > 0) {
         if (isCorrect) {
             appState.stats.correctCount++;
         } else {
@@ -605,8 +698,6 @@ function handleQuizOptionSelect(selectedIdx) {
 
     saveSavedData();
     updateStatsUI();
-
-    // Render updates instantly
     renderQuizQuestion();
 
     if (isCorrect) {
@@ -614,6 +705,30 @@ function handleQuizOptionSelect(selectedIdx) {
     } else {
         showToast("Incorrect answer. Check the explanation.", "error");
     }
+}
+
+function toggleMultiSelectOption(idx) {
+    if (appState.questions.length === 0) return;
+    const q = appState.questions[appState.currentQuizIdx];
+    
+    let userAnswer = appState.userAnswers[appState.currentQuizIdx];
+    if (userAnswer === null) {
+        userAnswer = {
+            selectedIndices: [],
+            isCorrect: false,
+            submitted: false
+        };
+        appState.userAnswers[appState.currentQuizIdx] = userAnswer;
+    }
+    
+    const indexInSelection = userAnswer.selectedIndices.indexOf(idx);
+    if (indexInSelection > -1) {
+        userAnswer.selectedIndices.splice(indexInSelection, 1);
+    } else {
+        userAnswer.selectedIndices.push(idx);
+    }
+    
+    renderQuizQuestion();
 }
 
 function updateStatsRatio() {
@@ -638,8 +753,8 @@ function navigateQuizNext() {
         renderQuizQuestion();
     } else {
         // Finished Quiz Screen / Stats Dialog
-        const totalAnswers = appState.userAnswers.filter(ans => ans !== null).length;
-        const correctAnswers = appState.userAnswers.filter(ans => ans && ans.isCorrect).length;
+        const totalAnswers = appState.userAnswers.filter(ans => ans !== null && ans.submitted).length;
+        const correctAnswers = appState.userAnswers.filter(ans => ans && ans.submitted && ans.isCorrect).length;
         const pct = totalAnswers > 0 ? Math.round((correctAnswers / totalAnswers) * 100) : 0;
         
         // Show result summary
@@ -655,31 +770,66 @@ function navigateQuizNext() {
     }
 }
 
-function revealQuizAnswer() {
+function handleQuizRevealOrSubmit() {
     if (appState.questions.length === 0) return;
     const q = appState.questions[appState.currentQuizIdx];
-    
-    if (q.answerIdx === -1) {
-        showToast("No answer key was provided in the CSV for this question.", "info");
-        return;
-    }
+    const userAnswer = appState.userAnswers[appState.currentQuizIdx];
 
-    if (appState.userAnswers[appState.currentQuizIdx] !== null) {
+    if (userAnswer !== null && userAnswer.submitted) {
         showToast("You have already answered this question.", "info");
         return;
     }
 
-    // Select the correct one automatically but mark as incorrect so it counts as study
-    appState.userAnswers[appState.currentQuizIdx] = {
-        selectedIdx: -1, // No user selection
-        isCorrect: false
-    };
+    if (q.correctAnswers.length === 0) {
+        showToast("No answer key was provided in the CSV for this question.", "info");
+        return;
+    }
 
-    appState.stats.incorrectCount++;
-    updateStatsRatio();
+    if (q.isMultiSelect) {
+        const hasSelection = userAnswer !== null && userAnswer.selectedIndices && userAnswer.selectedIndices.length > 0;
+        if (hasSelection) {
+            const correctAnswers = q.correctAnswers;
+            const selectedIndices = userAnswer.selectedIndices;
+            
+            // Exact match validation
+            const isCorrect = selectedIndices.length === correctAnswers.length && 
+                              selectedIndices.every(idx => correctAnswers.includes(idx));
+            
+            userAnswer.isCorrect = isCorrect;
+            userAnswer.submitted = true;
+            
+            if (isCorrect) {
+                appState.stats.correctCount++;
+                showToast("Correct!", "success");
+            } else {
+                appState.stats.incorrectCount++;
+                showToast("Incorrect.", "error");
+            }
+        } else {
+            // Empty reveal
+            appState.userAnswers[appState.currentQuizIdx] = {
+                selectedIndices: [],
+                isCorrect: false,
+                submitted: true
+            };
+            appState.stats.incorrectCount++;
+            showToast("Answer revealed.", "info");
+        }
+        updateStatsRatio();
+    } else {
+        // Single-select reveal
+        appState.userAnswers[appState.currentQuizIdx] = {
+            selectedIndices: [],
+            isCorrect: false,
+            submitted: true
+        };
+        appState.stats.incorrectCount++;
+        updateStatsRatio();
+        showToast("Answer revealed.", "info");
+    }
+
     saveSavedData();
     updateStatsUI();
-
     renderQuizQuestion();
 }
 
@@ -739,9 +889,17 @@ function renderFlashcard() {
     
     flashQuestionText.textContent = cardData.q.question;
     
-    if (cardData.q.answerIdx !== -1) {
-        flashAnswerLetter.textContent = `Option ${['A', 'B', 'C', 'D'][cardData.q.answerIdx]}`;
-        flashAnswerText.textContent = cardData.q.options[cardData.q.answerIdx];
+    if (cardData.q.correctAnswers && cardData.q.correctAnswers.length > 0) {
+        if (cardData.q.isMultiSelect) {
+            flashAnswerLetter.textContent = `Options: ${cardData.q.correctAnswers.map(idx => String.fromCharCode(65 + idx)).join(', ')}`;
+            flashAnswerText.innerHTML = cardData.q.correctAnswers
+                .map(idx => `<div style="margin-bottom: 4px;">• <strong>${String.fromCharCode(65 + idx)}:</strong> ${escapeHTML(cardData.q.options[idx])}</div>`)
+                .join('');
+        } else {
+            const correctIdx = cardData.q.correctAnswers[0];
+            flashAnswerLetter.textContent = `Option ${String.fromCharCode(65 + correctIdx)}`;
+            flashAnswerText.textContent = cardData.q.options[correctIdx];
+        }
     } else {
         flashAnswerLetter.textContent = "Study Note";
         flashAnswerText.textContent = "No correct answer is stored in this CSV.";
@@ -810,11 +968,12 @@ function renderStudyList() {
         let optionsHTML = '';
         q.options.forEach((opt, oIdx) => {
             if (!opt) return;
-            const isCorrect = oIdx === q.answerIdx;
+            const isCorrect = q.correctAnswers && q.correctAnswers.includes(oIdx);
             const optClass = isCorrect && !isCorrectOptionHidden ? 'study-item-opt correct-option' : 'study-item-opt';
+            const optLetter = String.fromCharCode(65 + oIdx);
             optionsHTML += `
                 <div class="${optClass}">
-                    <span class="study-item-opt-badge">${['A', 'B', 'C', 'D'][oIdx]}:</span>
+                    <span class="study-item-opt-badge">${optLetter}:</span>
                     <span>${escapeHTML(opt)}</span>
                 </div>
             `;
@@ -833,7 +992,7 @@ function renderStudyList() {
             <div class="study-item-options ${isCorrectOptionHidden ? 'answers-hidden' : ''}">
                 ${optionsHTML}
             </div>
-            ${q.answerIdx !== -1 && !isCorrectOptionHidden ? `
+            ${q.correctAnswers && q.correctAnswers.length > 0 && !isCorrectOptionHidden ? `
                 <div class="study-item-explanation">
                     <strong>Explanation:</strong> ${escapeHTML(q.explanation)}
                 </div>
@@ -903,25 +1062,49 @@ function showToast(message, type = 'info') {
 function saveSavedData() {
     const data = {
         bookmarks: Array.from(appState.bookmarks),
-        stats: appState.stats,
-        theme: appState.theme
+        stats: appState.stats
     };
-    localStorage.setItem('antigravity_reviewer_data', JSON.stringify(data));
+    localStorage.setItem(`antigravity_reviewer_data_${appState.currentTopic}`, JSON.stringify(data));
+    localStorage.setItem('antigravity_reviewer_theme', appState.theme);
 }
 
 function loadSavedData() {
-    const raw = localStorage.getItem('antigravity_reviewer_data');
+    const savedTheme = localStorage.getItem('antigravity_reviewer_theme');
+    if (savedTheme) {
+        appState.theme = savedTheme;
+    }
+
+    const raw = localStorage.getItem(`antigravity_reviewer_data_${appState.currentTopic}`);
     if (raw) {
         try {
             const data = JSON.parse(raw);
-            if (data.bookmarks) appState.bookmarks = new Set(data.bookmarks);
-            if (data.stats) appState.stats = data.stats;
-            if (data.theme) appState.theme = data.theme;
+            appState.bookmarks = data.bookmarks ? new Set(data.bookmarks) : new Set();
+            appState.stats = data.stats || {
+                attempts: 0,
+                avgScoreSum: 0,
+                quizzesTaken: 0,
+                correctCount: 0,
+                incorrectCount: 0
+            };
         } catch (e) {
-            console.error("Error loading localStorage data", e);
+            console.error("Error loading localStorage data for " + appState.currentTopic, e);
+            resetTopicState();
         }
+    } else {
+        resetTopicState();
     }
     updateStatsUI();
+}
+
+function resetTopicState() {
+    appState.bookmarks = new Set();
+    appState.stats = {
+        attempts: 0,
+        avgScoreSum: 0,
+        quizzesTaken: 0,
+        correctCount: 0,
+        incorrectCount: 0
+    };
 }
 
 function updateStatsUI() {
@@ -951,10 +1134,12 @@ function escapeHTML(str) {
 
 // --- Supabase Connection & Fetching Logic ---
 async function checkSupabaseConnection() {
+    if (appState.currentTopic !== 'micro') return;
+
     const { supabaseUrl, supabaseKey } = SUPABASE_CONFIG;
     if (!supabaseUrl || !supabaseKey) {
         updateSupabaseUI(false);
-        loadDefaultCSV();
+        loadMicroprocessorCSV();
         return;
     }
 
@@ -965,7 +1150,7 @@ async function checkSupabaseConnection() {
     } catch (err) {
         console.error("Supabase connection error:", err);
         updateSupabaseUI(false, "Connection Failed");
-        loadDefaultCSV();
+        loadMicroprocessorCSV();
     }
 }
 
@@ -1013,12 +1198,17 @@ async function loadQuestionsFromSupabase() {
             return;
         }
 
-        const processedQuestions = data.map(item => ({
-            question: item.question,
-            options: [item.option_a, item.option_b, item.option_c, item.option_d],
-            answerIdx: parseInt(item.correct_option),
-            explanation: item.explanation || `Correct option: ${['A', 'B', 'C', 'D'][item.correct_option]}.`
-        }));
+        const processedQuestions = data.map(item => {
+            const correctOpt = parseInt(item.correct_option);
+            return {
+                question: item.question,
+                options: [item.option_a, item.option_b, item.option_c, item.option_d],
+                correctAnswers: [correctOpt],
+                answerIdx: correctOpt,
+                isMultiSelect: false,
+                explanation: item.explanation || `Correct option: ${['A', 'B', 'C', 'D'][correctOpt]}.`
+            };
+        });
 
         appState.fileName = "Supabase DB";
         appState.questions = processedQuestions;
@@ -1042,5 +1232,50 @@ async function loadQuestionsFromSupabase() {
     } catch (err) {
         console.error("Error loading questions from Supabase:", err);
         showToast("Failed to load questions from Supabase. Falling back to local mode.", "error");
+    }
+}
+
+// --- Topic Selector Core Logic ---
+async function selectTopic(topic) {
+    if (appState.currentTopic === topic && appState.questions.length > 0) return;
+    
+    appState.currentTopic = topic;
+    localStorage.setItem('antigravity_reviewer_last_topic', topic);
+
+    const microBtn = document.getElementById('topic-micro-btn');
+    const ccnaBtn = document.getElementById('topic-ccna2-btn');
+    
+    if (topic === 'micro') {
+        if (microBtn) {
+            microBtn.className = 'btn btn-primary btn-full topic-selector-btn active';
+        }
+        if (ccnaBtn) {
+            ccnaBtn.className = 'btn btn-secondary btn-full topic-selector-btn';
+        }
+        
+        const mainTitle = document.getElementById('app-main-title');
+        if (mainTitle) mainTitle.textContent = "Microprocessor Finals Reviewer";
+        
+        const greetDesc = document.getElementById('greeting-desc');
+        if (greetDesc) greetDesc.textContent = "Study hard, master the microprocessor finals, and ace your exam! You've got this.";
+        
+        loadSavedData();
+        await checkSupabaseConnection();
+    } else {
+        if (microBtn) {
+            microBtn.className = 'btn btn-secondary btn-full topic-selector-btn';
+        }
+        if (ccnaBtn) {
+            ccnaBtn.className = 'btn btn-primary btn-full topic-selector-btn active';
+        }
+        
+        const mainTitle = document.getElementById('app-main-title');
+        if (mainTitle) mainTitle.textContent = "CCNA2 SRWE Reviewer";
+        
+        const greetDesc = document.getElementById('greeting-desc');
+        if (greetDesc) greetDesc.textContent = "Study hard, master the CCNA2 SRWE, and ace your exam! You've got this.";
+        
+        loadSavedData();
+        await loadCCNA2CSV();
     }
 }
