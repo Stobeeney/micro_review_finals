@@ -195,32 +195,6 @@ function setupEventListeners() {
         showToast("Theme toggled!", "info");
     });
 
-    // Load Default CSV Button
-    loadDefaultBtn.addEventListener('click', loadDefaultCSV);
-
-    // File Input change
-    fileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) handleCSVFile(file);
-    });
-
-    // Drag and Drop
-    dropZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        dropZone.classList.add('drag-over');
-    });
-
-    dropZone.addEventListener('dragleave', () => {
-        dropZone.classList.remove('drag-over');
-    });
-
-    dropZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        dropZone.classList.remove('drag-over');
-        const file = e.dataTransfer.files[0];
-        if (file) handleCSVFile(file);
-    });
-
     // Reset Statistics
     resetStatsBtn.addEventListener('click', () => {
         if (confirm("Are you sure you want to reset your statistics?")) {
@@ -355,8 +329,10 @@ function parseCSV(text) {
 // --- File Handling Logic ---
 async function loadDefaultCSV() {
     try {
-        loadDefaultBtn.disabled = true;
-        loadDefaultBtn.textContent = "Loading Midterm Exam...";
+        if (loadDefaultBtn) {
+            loadDefaultBtn.disabled = true;
+            loadDefaultBtn.textContent = "Loading Midterm Exam...";
+        }
         
         const response = await fetch('microprocessor_midterm.csv');
         if (!response.ok) {
@@ -367,10 +343,12 @@ async function loadDefaultCSV() {
         showToast("Microprocessor Midterm Exam loaded successfully!", "success");
     } catch (err) {
         console.error(err);
-        showToast("Could not find the local CSV file. Please upload it manually.", "error");
+        showToast("Could not find the local CSV file.", "error");
     } finally {
-        loadDefaultBtn.disabled = false;
-        loadDefaultBtn.textContent = "Load Microprocessor Midterm";
+        if (loadDefaultBtn) {
+            loadDefaultBtn.disabled = false;
+            loadDefaultBtn.textContent = "Load Microprocessor Midterm";
+        }
     }
 }
 
@@ -472,12 +450,12 @@ function processCSVText(fileName, csvText) {
     saveSavedData();
 
     // UI Updates
-    activeFilename.textContent = fileName;
-    activeQcount.textContent = processedQuestions.length;
-    fileDetails.classList.remove('hidden');
+    if (activeFilename) activeFilename.textContent = fileName;
+    if (activeQcount) activeQcount.textContent = processedQuestions.length;
+    if (fileDetails) fileDetails.classList.remove('hidden');
     
-    welcomeView.classList.add('hidden');
-    reviewerInterface.classList.remove('hidden');
+    if (welcomeView) welcomeView.classList.add('hidden');
+    if (reviewerInterface) reviewerInterface.classList.remove('hidden');
 
     updateStatsUI();
     startQuizTimer();
@@ -1054,12 +1032,12 @@ async function loadQuestionsFromSupabase() {
         appState.userAnswers = new Array(processedQuestions.length).fill(null);
 
         // UI Updates
-        activeFilename.textContent = "Supabase DB";
-        activeQcount.textContent = processedQuestions.length;
-        fileDetails.classList.remove('hidden');
+        if (activeFilename) activeFilename.textContent = "Supabase DB";
+        if (activeQcount) activeQcount.textContent = processedQuestions.length;
+        if (fileDetails) fileDetails.classList.remove('hidden');
         
-        welcomeView.classList.add('hidden');
-        reviewerInterface.classList.remove('hidden');
+        if (welcomeView) welcomeView.classList.add('hidden');
+        if (reviewerInterface) reviewerInterface.classList.remove('hidden');
 
         updateStatsUI();
         startQuizTimer();

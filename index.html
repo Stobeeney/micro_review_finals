@@ -40,42 +40,6 @@
         <main class="app-main">
             <!-- Sidebar for file load / stats -->
             <section class="app-sidebar">
-                <!-- File Load Card -->
-                <div class="card glass-card file-card">
-                    <h3 class="card-title">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M9 15h6"/><path d="M9 11h6"/><path d="M9 19h6"/></svg>
-                        Select Source CSV
-                    </h3>
-                    <p class="card-desc">Practice with the default Microprocessor Midterm exam or upload your own CSV quiz.</p>
-                    
-                    <div class="file-options">
-                        <button id="load-default-btn" class="btn btn-primary btn-full">
-                            <span class="pulse-ring"></span>
-                            Load Microprocessor Midterm
-                        </button>
-                        
-                        <div class="divider"><span>OR</span></div>
-                        
-                        <div id="drop-zone" class="drop-zone">
-                            <input type="file" id="file-input" accept=".csv" class="file-input">
-                            <div class="drop-content">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                                <span>Drag & Drop CSV or <strong>Browse</strong></span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div id="file-details" class="file-details hidden">
-                        <div class="details-row">
-                            <span class="detail-label">Active Source:</span>
-                            <span id="active-filename" class="detail-val">None</span>
-                        </div>
-                        <div class="details-row">
-                            <span class="detail-label">Total Questions:</span>
-                            <span id="active-qcount" class="detail-val">0</span>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- Supabase Info Card -->
                 <div class="card glass-card supabase-card">
@@ -134,33 +98,8 @@
 
             <!-- Reviewer Core -->
             <section class="app-content">
-                <!-- Welcome View (Shown when no CSV is loaded) -->
-                <div id="welcome-view" class="card glass-card welcome-card">
-                    <div class="welcome-graphics">
-                        <div class="circle-pulse red-pulse"></div>
-                        <div class="circle-pulse blue-pulse"></div>
-                        <svg class="welcome-illustration" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="url(#gradient)" stroke-width="1.5"><defs><linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="var(--accent-primary)"/><stop offset="100%" stop-color="var(--accent-secondary)"/></linearGradient></defs><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="9"/></svg>
-                    </div>
-                    <h2>Start Your Reviewing Session</h2>
-                    <p>Load the microprocessor midterm exam or drop any CSV file. Our tool will automatically parse the questions, structure your study session, and track your progress across multiple interactive modes.</p>
-                    <div class="instructions-steps">
-                        <div class="step">
-                            <div class="step-num">1</div>
-                            <div class="step-text"><strong>Load CSV:</strong> Choose the default exam or select your own.</div>
-                        </div>
-                        <div class="step">
-                            <div class="step-num">2</div>
-                            <div class="step-text"><strong>Choose Mode:</strong> Swap between Quiz, Flashcard, or Study Guide format.</div>
-                        </div>
-                        <div class="step">
-                            <div class="step-num">3</div>
-                            <div class="step-text"><strong>Master Material:</strong> Track bookmarks, review explanations, and practice!</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Reviewer Interface (Hidden until CSV loaded) -->
-                <div id="reviewer-interface" class="reviewer-interface hidden">
+                <!-- Reviewer Interface (Auto loaded) -->
+                <div id="reviewer-interface" class="reviewer-interface">
                     <!-- Mode Navigation Tabs -->
                     <nav class="mode-tabs">
                         <button class="tab-btn active" data-mode="quiz">
