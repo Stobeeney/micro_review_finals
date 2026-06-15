@@ -954,27 +954,18 @@ async function checkSupabaseConnection() {
     const { supabaseUrl, supabaseKey } = SUPABASE_CONFIG;
     if (!supabaseUrl || !supabaseKey) {
         updateSupabaseUI(false);
+        loadDefaultCSV();
         return;
     }
 
     try {
         updateSupabaseUI(true, "Connecting...");
-        const response = await fetch(`${supabaseUrl}/rest/v1/questions?select=count`, {
-            method: 'HEAD',
-            headers: {
-                'apikey': supabaseKey,
-                'Authorization': `Bearer ${supabaseKey}`
-            }
-        });
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-        }
-        
-        updateSupabaseUI(true, "Connected");
         await loadQuestionsFromSupabase();
+        updateSupabaseUI(true, "Connected");
     } catch (err) {
         console.error("Supabase connection error:", err);
         updateSupabaseUI(false, "Connection Failed");
+        loadDefaultCSV();
     }
 }
 
