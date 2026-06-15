@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal CSV Reviewer & Quiz Partner</title>
+    <!-- Google Fonts: Outfit and Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="dark-theme">
+    <div class="glow-bg"></div>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="brand">
+                <div class="logo-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m4 6 2-2 5 5-5 5-2-2 3-3z"/><path d="M18.5 18a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/><path d="M12 12h.01"/><path d="M16 8h.01"/><path d="M8 16h.01"/><path d="M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2s10 4.477 10 10z"/></svg>
+                </div>
+                <div class="brand-text">
+                    <h1>Antigravity Reviewer</h1>
+                    <span class="subtitle">Interactive Quiz & Study Companion</span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <div id="supabase-status" class="supabase-status offline" title="Supabase Status: Disconnected">
+                    <span class="status-dot"></span>
+                    <span id="supabase-status-text" class="status-text">Offline Mode</span>
+                </div>
+                <button id="theme-toggle" class="btn btn-icon" title="Toggle Theme">
+                    <!-- Sun / Moon SVG dynamically loaded in JS -->
+                    <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content Grid -->
+        <main class="app-main">
+            <!-- Sidebar for file load / stats -->
+            <section class="app-sidebar">
+                <!-- File Load Card -->
+                <div class="card glass-card file-card">
+                    <h3 class="card-title">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M9 15h6"/><path d="M9 11h6"/><path d="M9 19h6"/></svg>
+                        Select Source CSV
+                    </h3>
+                    <p class="card-desc">Practice with the default Microprocessor Midterm exam or upload your own CSV quiz.</p>
+                    
+                    <div class="file-options">
+                        <button id="load-default-btn" class="btn btn-primary btn-full">
+                            <span class="pulse-ring"></span>
+                            Load Microprocessor Midterm
+                        </button>
+                        
+                        <div class="divider"><span>OR</span></div>
+                        
+                        <div id="drop-zone" class="drop-zone">
+                            <input type="file" id="file-input" accept=".csv" class="file-input">
+                            <div class="drop-content">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                <span>Drag & Drop CSV or <strong>Browse</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="file-details" class="file-details hidden">
+                        <div class="details-row">
+                            <span class="detail-label">Active Source:</span>
+                            <span id="active-filename" class="detail-val">None</span>
+                        </div>
+                        <div class="details-row">
+                            <span class="detail-label">Total Questions:</span>
+                            <span id="active-qcount" class="detail-val">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Supabase Info Card -->
+                <div class="card glass-card supabase-card">
+                    <h3 class="card-title">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        Supabase DB
+                    </h3>
+                    <p class="card-desc">For web hosting (e.g. Vercel), store your questions in a Supabase table.</p>
+                    
+                    <div class="supabase-info-content">
+                        <div id="db-indicator" class="db-status-banner db-offline">
+                            Disconnected (Offline Mode)
+                        </div>
+                        <div class="db-steps">
+                            <div class="db-step-item">
+                                <span class="db-step-bullet">1</span>
+                                <span class="db-step-desc">Create Supabase project & table (see SQL snippet)</span>
+                            </div>
+                            <div class="db-step-item">
+                                <span class="db-step-bullet">2</span>
+                                <span class="db-step-desc">Enter keys in <span class="code-lbl">supabase-config.js</span></span>
+                            </div>
+                            <div class="db-step-item">
+                                <span class="db-step-bullet">3</span>
+                                <span class="db-step-desc">Run <span class="code-lbl">migrate.py</span> to upload CSV questions</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats Card -->
+                <div class="card glass-card stats-card">
+                    <h3 class="card-title">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                        Study Statistics
+                    </h3>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-num" id="stat-attempts">0</span>
+                            <span class="stat-lbl">Attempts</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-num" id="stat-avg-score">0%</span>
+                            <span class="stat-lbl">Avg Score</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-num" id="stat-flagged">0</span>
+                            <span class="stat-lbl">Bookmarked</span>
+                        </div>
+                    </div>
+                    <div class="stats-footer">
+                        <button id="reset-stats-btn" class="btn btn-secondary btn-sm btn-full">Reset Statistics</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Reviewer Core -->
+            <section class="app-content">
+                <!-- Welcome View (Shown when no CSV is loaded) -->
+                <div id="welcome-view" class="card glass-card welcome-card">
+                    <div class="welcome-graphics">
+                        <div class="circle-pulse red-pulse"></div>
+                        <div class="circle-pulse blue-pulse"></div>
+                        <svg class="welcome-illustration" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="url(#gradient)" stroke-width="1.5"><defs><linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="var(--accent-primary)"/><stop offset="100%" stop-color="var(--accent-secondary)"/></linearGradient></defs><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="9"/></svg>
+                    </div>
+                    <h2>Start Your Reviewing Session</h2>
+                    <p>Load the microprocessor midterm exam or drop any CSV file. Our tool will automatically parse the questions, structure your study session, and track your progress across multiple interactive modes.</p>
+                    <div class="instructions-steps">
+                        <div class="step">
+                            <div class="step-num">1</div>
+                            <div class="step-text"><strong>Load CSV:</strong> Choose the default exam or select your own.</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-num">2</div>
+                            <div class="step-text"><strong>Choose Mode:</strong> Swap between Quiz, Flashcard, or Study Guide format.</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-num">3</div>
+                            <div class="step-text"><strong>Master Material:</strong> Track bookmarks, review explanations, and practice!</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reviewer Interface (Hidden until CSV loaded) -->
+                <div id="reviewer-interface" class="reviewer-interface hidden">
+                    <!-- Mode Navigation Tabs -->
+                    <nav class="mode-tabs">
+                        <button class="tab-btn active" data-mode="quiz">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                            Practice Quiz
+                        </button>
+                        <button class="tab-btn" data-mode="flashcards">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                            Flashcards
+                        </button>
+                        <button class="tab-btn" data-mode="study">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/></svg>
+                            Study Guide
+                        </button>
+                    </nav>
+
+                    <!-- Practice Quiz View -->
+                    <div id="quiz-view" class="mode-view">
+                        <div class="quiz-header">
+                            <div class="progress-info">
+                                <span class="badge">Question <span id="quiz-current-idx">1</span> of <span id="quiz-total-idx">0</span></span>
+                                <span class="badge text-success">Correct: <span id="quiz-correct-count">0</span></span>
+                                <span class="badge text-error">Incorrect: <span id="quiz-incorrect-count">0</span></span>
+                            </div>
+                            <div class="quiz-timer">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                <span id="quiz-time">00:00</span>
+                            </div>
+                        </div>
+
+                        <!-- Progress Bar -->
+                        <div class="progress-bar-container">
+                            <div id="quiz-progress-bar" class="progress-bar" style="width: 0%"></div>
+                        </div>
+
+                        <!-- Question Card -->
+                        <div class="card glass-card question-card animate-slide-in">
+                            <div class="question-header">
+                                <span class="badge badge-accent">Midterm Topic</span>
+                                <button id="quiz-bookmark-btn" class="btn btn-icon btn-bookmark" title="Bookmark Question">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+                                </button>
+                            </div>
+                            <h2 id="quiz-question-text" class="question-text">Loading question...</h2>
+                            
+                            <div id="quiz-options-container" class="options-grid">
+                                <!-- Options dynamically generated -->
+                            </div>
+
+                            <!-- Explanation panel, hidden initially -->
+                            <div id="explanation-panel" class="explanation-panel hidden">
+                                <div class="explanation-title">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                                    Review & Explanation
+                                </div>
+                                <p id="explanation-text">Explanatory content goes here...</p>
+                            </div>
+                        </div>
+
+                        <!-- Quiz Controls -->
+                        <div class="quiz-controls">
+                            <button id="quiz-prev-btn" class="btn btn-secondary">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                                Previous
+                            </button>
+                            <button id="quiz-show-ans-btn" class="btn btn-secondary">Reveal Answer</button>
+                            <button id="quiz-next-btn" class="btn btn-primary">
+                                Next
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Flashcard View -->
+                    <div id="flashcards-view" class="mode-view hidden">
+                        <div class="flashcards-header">
+                            <span class="badge">Card <span id="flash-current-idx">1</span> of <span id="flash-total-idx">0</span></span>
+                            <div class="flashcards-filters">
+                                <label class="checkbox-container">
+                                    <input type="checkbox" id="flash-filter-bookmarked">
+                                    <span class="checkmark"></span>
+                                    Bookmarked Only
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- 3D Flashcard Wrapper -->
+                        <div class="flashcard-wrapper">
+                            <div id="flashcard" class="flashcard">
+                                <div class="flashcard-face flashcard-front">
+                                    <div class="card-tag">QUESTION</div>
+                                    <p id="flash-question-text" class="flashcard-text">Loading flashcard...</p>
+                                    <div class="tap-hint">Click / Tap to Reveal Answer</div>
+                                </div>
+                                <div class="flashcard-face flashcard-back">
+                                    <div class="card-tag tag-answer">CORRECT ANSWER</div>
+                                    <p id="flash-answer-letter" class="flashcard-letter">Option A</p>
+                                    <p id="flash-answer-text" class="flashcard-text">Correct answer text...</p>
+                                    <div class="tap-hint">Click / Tap to Flip Back</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Leitner controls -->
+                        <div class="flashcard-controls">
+                            <button id="flash-prev-btn" class="btn btn-secondary btn-circle" title="Previous Card">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                            </button>
+                            <div class="feedback-btns">
+                                <button id="flash-wrong-btn" class="btn btn-error">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                                    Still Studying
+                                </button>
+                                <button id="flash-right-btn" class="btn btn-success">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="16 12 12 8 8 12"/><polyline points="16 16 12 12 8 16"/></svg>
+                                    I Know It!
+                                </button>
+                            </div>
+                            <button id="flash-next-btn" class="btn btn-secondary btn-circle" title="Next Card">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Study Guide View -->
+                    <div id="study-view" class="mode-view hidden">
+                        <div class="study-toolbar">
+                            <div class="search-box">
+                                <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                <input type="text" id="study-search" placeholder="Search questions, options or topics...">
+                            </div>
+                            <div class="filter-controls">
+                                <button id="study-filter-bookmarked" class="btn btn-secondary btn-icon-only" title="Show Bookmarked Only">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+                                </button>
+                                <button id="study-toggle-answers" class="btn btn-secondary">Show All Answers</button>
+                            </div>
+                        </div>
+
+                        <!-- Study Guide List -->
+                        <div id="study-list" class="study-list">
+                            <!-- Items dynamically generated -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer-bar">
+            <p>&copy; 2026 Antigravity Systems. Built for Reviewing Excellence.</p>
+            <div class="footer-links">
+                <a href="#" id="clear-data-btn">Clear Saved Data</a>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
