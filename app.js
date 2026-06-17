@@ -241,8 +241,10 @@ function setupEventListeners() {
     // Topic Selector Buttons
     const topicMicroBtn = document.getElementById('topic-micro-btn');
     const topicCcnaBtn = document.getElementById('topic-ccna2-btn');
+    const topicCpeLawBtn = document.getElementById('topic-cpelaw-btn');
     if (topicMicroBtn) topicMicroBtn.addEventListener('click', () => selectTopic('micro'));
     if (topicCcnaBtn) topicCcnaBtn.addEventListener('click', () => selectTopic('ccna2'));
+    if (topicCpeLawBtn) topicCpeLawBtn.addEventListener('click', () => selectTopic('cpelaw'));
 
     // Flashcard interaction
     flashcard.addEventListener('click', () => {
@@ -387,6 +389,33 @@ async function loadCCNA2CSV() {
         if (ccnaBtn) {
             ccnaBtn.disabled = false;
             ccnaBtn.querySelector('span').textContent = "CCNA2 SRWE Reviewer";
+        }
+    }
+}
+
+async function loadCPELawCSV() {
+    try {
+        const cpelawBtn = document.getElementById('topic-cpelaw-btn');
+        if (cpelawBtn) {
+            cpelawBtn.disabled = true;
+            cpelawBtn.querySelector('span').textContent = "Loading CPE Law...";
+        }
+        
+        const response = await fetch('mock_exam_CPELAW(1).csv');
+        if (!response.ok) {
+            throw new Error(`Failed to fetch CPE Law CSV. HTTP ${response.status}`);
+        }
+        const text = await response.text();
+        processCSVText("mock_exam_CPELAW(1).csv", text);
+        showToast("CPE Law Reviewer loaded successfully!", "success");
+    } catch (err) {
+        console.error(err);
+        showToast("Could not find the CPE Law CSV file.", "error");
+    } finally {
+        const cpelawBtn = document.getElementById('topic-cpelaw-btn');
+        if (cpelawBtn) {
+            cpelawBtn.disabled = false;
+            cpelawBtn.querySelector('span').textContent = "CPE Law Reviewer";
         }
     }
 }
@@ -1244,38 +1273,41 @@ async function selectTopic(topic) {
 
     const microBtn = document.getElementById('topic-micro-btn');
     const ccnaBtn = document.getElementById('topic-ccna2-btn');
+    const cpelawBtn = document.getElementById('topic-cpelaw-btn');
     
+    if (microBtn) microBtn.className = 'btn btn-secondary btn-full topic-selector-btn';
+    if (ccnaBtn) ccnaBtn.className = 'btn btn-secondary btn-full topic-selector-btn';
+    if (cpelawBtn) cpelawBtn.className = 'btn btn-secondary btn-full topic-selector-btn';
+
+    const mainTitle = document.getElementById('app-main-title');
+    const greetDesc = document.getElementById('greeting-desc');
+
     if (topic === 'micro') {
         if (microBtn) {
             microBtn.className = 'btn btn-primary btn-full topic-selector-btn active';
         }
-        if (ccnaBtn) {
-            ccnaBtn.className = 'btn btn-secondary btn-full topic-selector-btn';
-        }
-        
-        const mainTitle = document.getElementById('app-main-title');
         if (mainTitle) mainTitle.textContent = "Microprocessor Finals Reviewer";
-        
-        const greetDesc = document.getElementById('greeting-desc');
         if (greetDesc) greetDesc.textContent = "Study hard, master the microprocessor finals, and ace your exam! You've got this.";
         
         loadSavedData();
         await checkSupabaseConnection();
-    } else {
-        if (microBtn) {
-            microBtn.className = 'btn btn-secondary btn-full topic-selector-btn';
-        }
+    } else if (topic === 'ccna2') {
         if (ccnaBtn) {
             ccnaBtn.className = 'btn btn-primary btn-full topic-selector-btn active';
         }
-        
-        const mainTitle = document.getElementById('app-main-title');
         if (mainTitle) mainTitle.textContent = "CCNA2 SRWE Reviewer";
-        
-        const greetDesc = document.getElementById('greeting-desc');
         if (greetDesc) greetDesc.textContent = "Study hard, master the CCNA2 SRWE, and ace your exam! You've got this.";
         
         loadSavedData();
         await loadCCNA2CSV();
+    } else if (topic === 'cpelaw') {
+        if (cpelawBtn) {
+            cpelawBtn.className = 'btn btn-primary btn-full topic-selector-btn active';
+        }
+        if (mainTitle) mainTitle.textContent = "CPE Law Reviewer";
+        if (greetDesc) greetDesc.textContent = "Study hard, master CPE Law & Ethics, and ace your exam! You've got this.";
+        
+        loadSavedData();
+        await loadCPELawCSV();
     }
 }
